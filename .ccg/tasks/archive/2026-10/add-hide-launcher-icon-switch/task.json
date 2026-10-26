@@ -1,0 +1,12 @@
+{
+  "status": "completed",
+  "risk": "medium",
+  "nextAction": "Archive task",
+  "domain": "android",
+  "currentPhase": "completed",
+  "createdAt": "2026-10-26T15:31:46.7965048Z",
+  "id": "add-hide-launcher-icon-switch",
+  "title": "Add hide launcher icon switch",
+  "branch": "main",
+  "complexity": "M"
+}
