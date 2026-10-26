@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VLC 字幕字体</string>
+    <string name="xposed_desc">为 VLC Android 自定义字幕字体（SRT 与 ASS 缺字回退），无需修改 APK 或系统字体</string>
+    <string name="help_text">1. 在 LSPosed 中启用本模块并勾选作用域「VLC」，重启 VLC。\n2. 回到这里选择字体文件（ttf / otf / ttc），保持开关打开。\n3. 强制停止 VLC 后重新打开，播放视频即可看到新字幕字体。\n\nSRT 等文本字幕与 ASS 缺字回退均使用所选字体；ASS 字幕若指定了其他字体名，模块会把字体目录交给 libass 按名匹配。字体文件只写入 VLC 私有目录，卸载 VLC 或清除其数据即可完全还原。</string>
+    <string name="footnote">原理：运行时改写 libvlc.so 中的字体路径常量（参考 acgrip 同名教程），不修改 APK、不修改系统字体。若未生效，请查看 LSPosed 日志中标签 VlcSubFont。</string>
+</resources>
