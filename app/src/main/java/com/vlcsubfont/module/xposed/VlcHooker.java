@@ -5,6 +5,7 @@ import com.vlcsubfont.module.FontStore;
 import android.app.Application;
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
@@ -18,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -33,7 +35,7 @@ import de.robv.android.xposed.XposedHelpers;
  */
 public final class VlcHooker {
 
-    private static final String TAG = "VlcSubFont";
+    private static final String TAG = "VlcSubtitleFont";
 
     private static volatile Application sApp;
     private static final CountDownLatch sSetupDone = new CountDownLatch(1);
@@ -43,11 +45,17 @@ public final class VlcHooker {
     private static volatile ParcelFileDescriptor sFtsFd;
     private static volatile boolean sSetupStarted;
     private static volatile boolean sToastShown;
+    private static volatile boolean sPruneAudio = true;
+    private static volatile boolean sPrunePlaylists;
+    /** 配置读取完成前不修改 VLC 导航或媒体库结果，避免启动竞态。 */
+    private static volatile boolean sPruneHomeReady;
 
     private static final class Config {
         boolean enabled;
         long version;
         String fontName;
+        boolean pruneAudio = true;
+        boolean prunePlaylists;
     }
 
     private VlcHooker() {
@@ -72,6 +80,7 @@ public final class VlcHooker {
         } catch (Throwable t) {
             XposedBridge.log(t);
         }
+        installAudioPruningHooks(cl);
         try {
             Class<?> libVLC = XposedHelpers.findClass("org.videolan.libvlc.LibVLC", cl);
             XposedBridge.hookAllConstructors(libVLC, new XC_MethodHook() {
@@ -106,12 +115,14 @@ public final class VlcHooker {
     private static void runSetup(Application app) {
         try {
             Config pc = queryProviderConfig(app);
-            if (pc != null && !pc.enabled) {
-                sResult = "disabled";
-                return;
-            }
             Config mc = readMediaConfig(app);
-            if (pc == null && mc != null && !mc.enabled) {
+            // Read this independently from the font switch: pruning is a separate setting.
+            sPruneAudio = pc != null ? pc.pruneAudio : (mc == null || mc.pruneAudio);
+            sPrunePlaylists = pc != null ? pc.prunePlaylists : (mc != null && mc.prunePlaylists);
+            sPruneHomeReady = true;
+            log("audio pruning " + (sPruneAudio ? "enabled" : "disabled")
+                    + ", playlist pruning " + (sPrunePlaylists ? "enabled" : "disabled"));
+            if ((pc != null && !pc.enabled) || (pc == null && mc != null && !mc.enabled)) {
                 sResult = "disabled";
                 return;
             }
@@ -178,6 +189,15 @@ public final class VlcHooker {
                 cfg.enabled = c.getInt(c.getColumnIndexOrThrow("enabled")) != 0;
                 cfg.version = c.getLong(c.getColumnIndexOrThrow("version"));
                 cfg.fontName = c.getString(c.getColumnIndexOrThrow("font_name"));
+                int audioIndex = c.getColumnIndex("prune_audio");
+                int playlistIndex = c.getColumnIndex("prune_playlists");
+                int legacyIndex = c.getColumnIndex("prune_home");
+                cfg.pruneAudio = audioIndex >= 0
+                        ? c.getInt(audioIndex) != 0
+                        : legacyIndex < 0 || c.getInt(legacyIndex) != 0;
+                cfg.prunePlaylists = playlistIndex >= 0
+                        ? c.getInt(playlistIndex) != 0
+                        : legacyIndex >= 0 && c.getInt(legacyIndex) != 0;
                 return cfg;
             } finally {
                 c.close();
@@ -199,6 +219,11 @@ public final class VlcHooker {
             cfg.enabled = json.optBoolean("enabled");
             cfg.version = json.optLong("version", -1L);
             cfg.fontName = json.optString("fontName", null);
+            boolean legacyPrune = json.optBoolean("pruneHome", true);
+            cfg.pruneAudio = json.has("pruneAudio")
+                    ? json.optBoolean("pruneAudio", true) : legacyPrune;
+            cfg.prunePlaylists = json.has("prunePlaylists")
+                    ? json.optBoolean("prunePlaylists", false) : legacyPrune;
             return cfg;
         } catch (Throwable t) {
             return null;
@@ -254,7 +279,7 @@ public final class VlcHooker {
             if (!"ok".equals(sResult)) {
                 if (sResult.startsWith("error") || "no-module".equals(sResult)
                         || "no-font".equals(sResult)) {
-                    notifyOnce("VLC 字幕字体模块未生效: " + sResult);
+                    notifyOnce("VLC字幕字体自定义未生效: " + sResult);
                 }
                 return;
             }
@@ -297,6 +322,98 @@ public final class VlcHooker {
         }, "vlc-subfont-patch");
         t.setDaemon(true);
         t.start();
+    }
+
+    private static void installAudioPruningHooks(ClassLoader cl) {
+        try {
+            Class<?> navigator = XposedHelpers.findClass(
+                    "org.videolan.vlc.gui.helpers.Navigator", cl);
+            Class<?> mainActivity = XposedHelpers.findClass(
+                    "org.videolan.vlc.gui.MainActivity", cl);
+            XposedHelpers.findAndHookMethod(navigator, "setupNavigation",
+                    mainActivity, Bundle.class, new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) {
+                            hideAudioNavigation(param);
+                        }
+                    });
+            log("audio navigation hook installed");
+        } catch (Throwable t) {
+            log("audio navigation hook failed: " + t);
+        }
+
+        try {
+            Class<?> medialibrary = XposedHelpers.findClass(
+                    "org.videolan.medialibrary.MedialibraryImpl", cl);
+            String[] audioMethods = {
+                    "getAudio", "getPagedAudio", "getRecentAudio", "searchAudio", "getAudioCount",
+                    "getAlbums", "getAlbumsCount", "getArtists", "getArtistsCount",
+                    "getGenres", "getGenresCount"
+            };
+            XC_MethodHook hook = new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    if (!sPruneHomeReady || !sPruneAudio || param.getResult() == null) return;
+                    if (param.getResult() != null) {
+                        Class<?> type = param.getResult().getClass();
+                        if (type.isArray()) {
+                            param.setResult(Array.newInstance(type.getComponentType(), 0));
+                        } else if (param.getResult() instanceof Integer) {
+                            param.setResult(0);
+                        }
+                    }
+                }
+            };
+            for (String method : audioMethods) {
+                XposedBridge.hookAllMethods(medialibrary, method, hook);
+            }
+            log("audio library query hooks installed");
+        } catch (Throwable t) {
+            log("audio library hook failed: " + t);
+        }
+    }
+
+    private static void hideAudioNavigation(XC_MethodHook.MethodHookParam param) {
+        if (!sPruneHomeReady || (!sPruneAudio && !sPrunePlaylists)) return;
+        try {
+            Object activity = param.args[0];
+            String packageName = ((Context) activity).getPackageName();
+            int audioId = ((Context) activity).getResources().getIdentifier(
+                    "nav_audio", "id", packageName);
+            int videoId = ((Context) activity).getResources().getIdentifier(
+                    "nav_video", "id", packageName);
+            int[] navigationIds = {
+                    ((Context) activity).getResources().getIdentifier("navigation", "id", packageName),
+                    ((Context) activity).getResources().getIdentifier("navigation_rail", "id", packageName)
+            };
+            for (int navigationId : navigationIds) {
+                if (navigationId == 0) continue;
+                Object navigation = XposedHelpers.callMethod(activity, "findViewById", navigationId);
+                if (navigation == null) continue;
+                Object menu = XposedHelpers.callMethod(navigation, "getMenu");
+                Object audioItem = XposedHelpers.callMethod(menu, "findItem", audioId);
+                if (audioItem != null && sPruneAudio) {
+                    XposedHelpers.callMethod(audioItem, "setVisible", false);
+                }
+                int playlistId = ((Context) activity).getResources().getIdentifier(
+                        "nav_playlists", "id", packageName);
+                Object playlistItem = XposedHelpers.callMethod(menu, "findItem", playlistId);
+                if (playlistItem != null && sPrunePlaylists) {
+                    XposedHelpers.callMethod(playlistItem, "setVisible", false);
+                }
+            }
+            int currentId = XposedHelpers.getIntField(param.thisObject, "currentFragmentId");
+            int playlistId = ((Context) activity).getResources().getIdentifier(
+                    "nav_playlists", "id", packageName);
+            if ((currentId == audioId && sPruneAudio)
+                    || (currentId == playlistId && sPrunePlaylists)
+                    || currentId == 0) {
+                XposedHelpers.setIntField(param.thisObject, "currentFragmentId", videoId);
+            }
+            log("navigation pruning applied");
+        } catch (Throwable t) {
+            log("hide audio navigation failed: " + t);
+        }
     }
 
     private static void injectSsaFontsDir(XC_MethodHook.MethodHookParam param) {

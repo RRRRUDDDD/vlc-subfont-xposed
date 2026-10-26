@@ -18,7 +18,7 @@ import java.io.FileNotFoundException;
  */
 public class FontProvider extends ContentProvider {
 
-    private static final String[] COLUMNS = {"enabled", "font_name", "version", "font_size"};
+    private static final String[] COLUMNS = {"enabled", "font_name", "version", "font_size", "prune_audio", "prune_playlists"};
 
     private SharedPreferences mPrefs;
     private File mFontFile;
@@ -44,6 +44,12 @@ public class FontProvider extends ContentProvider {
                 mPrefs.getString("font_name", null),
                 mPrefs.getLong("version", 0L),
                 mFontFile.canRead() ? mFontFile.length() : 0L,
+                (mPrefs.contains("prune_audio")
+                        ? mPrefs.getBoolean("prune_audio", true)
+                        : mPrefs.getBoolean("prune_home", true)) ? 1 : 0,
+                (mPrefs.contains("prune_playlists")
+                        ? mPrefs.getBoolean("prune_playlists", false)
+                        : mPrefs.getBoolean("prune_home", false)) ? 1 : 0,
         });
         return c;
     }

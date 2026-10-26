@@ -34,7 +34,7 @@ import de.robv.android.xposed.XposedHelpers;
  */
 public final class MemoryPatcher {
 
-    private static final String TAG = "VlcSubFont";
+    private static final String TAG = "VlcSubtitleFont";
 
     private static final int CHUNK = 1 << 20;
     private static final int OVERLAP = 64;

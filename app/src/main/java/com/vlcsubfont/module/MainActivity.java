@@ -2,6 +2,7 @@ package com.vlcsubfont.module;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -40,6 +41,10 @@ public class MainActivity extends Activity {
 
     private SharedPreferences mPrefs;
     private MaterialSwitch mSwitch;
+    private MaterialSwitch mHideIconSwitch;
+    private MaterialSwitch mPruneAudioSwitch;
+    private boolean mUpdatingUi;
+    private MaterialSwitch mPrunePlaylistsSwitch;
     private MaterialTextView mTxtFont;
     private MaterialTextView mTxtStatus;
     private Uri mPendingPick;
@@ -51,11 +56,32 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         mSwitch = findViewById(R.id.switch_enabled);
+        mHideIconSwitch = findViewById(R.id.switch_hide_icon);
+        mPruneAudioSwitch = findViewById(R.id.switch_prune_audio);
+        mPrunePlaylistsSwitch = findViewById(R.id.switch_prune_playlists);
         mTxtFont = findViewById(R.id.txt_font);
         mTxtStatus = findViewById(R.id.txt_status);
 
         mSwitch.setOnCheckedChangeListener((btn, checked) -> {
             mPrefs.edit().putBoolean("enabled", checked).apply();
+            writeMediaConfig();
+            refreshUi();
+        });
+
+        mHideIconSwitch.setOnCheckedChangeListener((btn, checked) -> {
+            if (mUpdatingUi) return;
+            mPrefs.edit().putBoolean("hide_icon", checked).apply();
+            setLauncherIconHidden(checked);
+        });
+
+        mPruneAudioSwitch.setOnCheckedChangeListener((btn, checked) -> {
+            mPrefs.edit().putBoolean("prune_audio", checked).apply();
+            writeMediaConfig();
+            refreshUi();
+        });
+
+        mPrunePlaylistsSwitch.setOnCheckedChangeListener((btn, checked) -> {
+            mPrefs.edit().putBoolean("prune_playlists", checked).apply();
             writeMediaConfig();
             refreshUi();
         });
@@ -99,16 +125,65 @@ public class MainActivity extends Activity {
 
     private void refreshUi() {
         boolean enabled = mPrefs.getBoolean("enabled", false);
+        boolean hideIcon = isLauncherIconHidden();
+        boolean pruneAudio = mPrefs.contains("prune_audio")
+                ? mPrefs.getBoolean("prune_audio", true)
+                : mPrefs.getBoolean("prune_home", true);
+        boolean prunePlaylists = mPrefs.contains("prune_playlists")
+                ? mPrefs.getBoolean("prune_playlists", false)
+                : mPrefs.getBoolean("prune_home", false);
         String name = mPrefs.getString("font_name", null);
         boolean hasFont = new File(getFilesDir(), "font.ttf").canRead();
 
-        mSwitch.setEnabled(hasFont);
-        mSwitch.setChecked(enabled && hasFont);
+        mUpdatingUi = true;
+        try {
+            mSwitch.setEnabled(hasFont);
+            mSwitch.setChecked(enabled && hasFont);
+            mHideIconSwitch.setChecked(hideIcon);
+            mPruneAudioSwitch.setChecked(pruneAudio);
+            mPrunePlaylistsSwitch.setChecked(prunePlaylists);
+        } finally {
+            mUpdatingUi = false;
+        }
         mTxtFont.setText(hasFont && !TextUtils.isEmpty(name)
                 ? name : "未选择（选择 ttf / otf / ttc 字体文件）");
         mTxtStatus.setText(enabled && hasFont
                 ? "已启用。重启 VLC（或强制停止后再打开）后生效。"
                 : "未启用。");
+    }
+
+    private boolean isLauncherIconHidden() {
+        try {
+            ComponentName alias = new ComponentName(this,
+                    getPackageName() + ".LauncherAlias");
+            int state = getPackageManager().getComponentEnabledSetting(alias);
+            boolean hidden = state == PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+            mPrefs.edit().putBoolean("hide_icon", hidden).apply();
+            return hidden;
+        } catch (Throwable e) {
+            return mPrefs.getBoolean("hide_icon", false);
+        }
+    }
+
+    private void setLauncherIconHidden(boolean hidden) {
+        try {
+            ComponentName alias = new ComponentName(this,
+                    getPackageName() + ".LauncherAlias");
+            getPackageManager().setComponentEnabledSetting(
+                    alias,
+                    hidden ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                            : PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP);
+        } catch (Throwable e) {
+            mPrefs.edit().putBoolean("hide_icon", isLauncherIconHidden()).apply();
+            mUpdatingUi = true;
+            try {
+                mHideIconSwitch.setChecked(isLauncherIconHidden());
+            } finally {
+                mUpdatingUi = false;
+            }
+            Toast.makeText(this, "桌面图标设置失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -179,6 +254,12 @@ public class MainActivity extends Activity {
             json.put("enabled", mPrefs.getBoolean("enabled", false) && src.canRead());
             json.put("fontName", mPrefs.getString("font_name", null));
             json.put("version", mPrefs.getLong("version", 0L));
+            json.put("pruneAudio", mPrefs.contains("prune_audio")
+                    ? mPrefs.getBoolean("prune_audio", true)
+                    : mPrefs.getBoolean("prune_home", true));
+            json.put("prunePlaylists", mPrefs.contains("prune_playlists")
+                    ? mPrefs.getBoolean("prune_playlists", false)
+                    : mPrefs.getBoolean("prune_home", false));
             try (OutputStream out = new FileOutputStream(new File(dir, "config.json"))) {
                 out.write(json.toString().getBytes(StandardCharsets.UTF_8));
             }

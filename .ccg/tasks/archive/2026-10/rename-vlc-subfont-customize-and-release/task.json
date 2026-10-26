@@ -1,0 +1,12 @@
+{
+  "complexity": "M",
+  "id": "rename-vlc-subfont-customize-and-release",
+  "branch": "main",
+  "currentPhase": "completed",
+  "status": "completed",
+  "domain": "android",
+  "title": "Rename module and release updated VLC subtitle font customization",
+  "risk": "medium",
+  "nextAction": "Archive task",
+  "createdAt": "2026-10-26T16:03:44.9300254Z"
+}
