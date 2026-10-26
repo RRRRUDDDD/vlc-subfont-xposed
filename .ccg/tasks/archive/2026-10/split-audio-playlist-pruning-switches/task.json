@@ -1,0 +1,12 @@
+{
+  "branch": "main",
+  "status": "completed",
+  "domain": "android",
+  "id": "split-audio-playlist-pruning-switches",
+  "complexity": "M",
+  "createdAt": "2026-10-26T15:10:37.2583877Z",
+  "currentPhase": "completed",
+  "risk": "medium",
+  "nextAction": "Archive task",
+  "title": "Split audio and playlist pruning switches"
+}
