@@ -1,0 +1,12 @@
+{
+  "title": "Fix confirmed VLC course module issues",
+  "createdAt": "2026-10-26T14:42:51.6799754Z",
+  "risk": "medium",
+  "nextAction": "Archive task",
+  "currentPhase": "completed",
+  "status": "completed",
+  "id": "fix-vlc-course-module-issues",
+  "domain": "android",
+  "complexity": "M",
+  "branch": "main"
+}
