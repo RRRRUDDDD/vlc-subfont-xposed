@@ -1,0 +1,12 @@
+{
+  "createdAt": "2026-10-26T15:49:52.4042889Z",
+  "id": "restore-module-settings-access-and-polish-layout",
+  "title": "Restore module settings access and polish layout",
+  "currentPhase": "completed",
+  "status": "completed",
+  "complexity": "M",
+  "domain": "android",
+  "branch": "main",
+  "nextAction": "Archive task",
+  "risk": "medium"
+}
