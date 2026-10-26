@@ -1,0 +1,31 @@
+{
+  "scope": "Static source checks only; no device playback testing",
+  "checks": {
+    "font_disabled_returns_before_prune_config": true,
+    "prune_defaults_true": true,
+    "prune_switch_not_restored": true,
+    "playlist_hidden_with_audio": true,
+    "audio_queries_hooked": true,
+    "native_per_media_speed": true,
+    "native_global_speed": true,
+    "native_ab_persistence": true,
+    "native_saved_progress": true
+  },
+  "source_hashes": {
+    "app\\src\\main\\AndroidManifest.xml": "b20d82992a80a6c8b607482c8451e0590354f605be5e63f7ff64149ae512fcce",
+    "app\\src\\main\\assets\\xposed_init": "94f4e94427542f0e9424f5328a6f39ed2b29da09afd7ce2631a79434109f8d04",
+    "app\\src\\main\\java\\com\\vlcsubfont\\module\\FontProvider.java": "bea1b30300725884a4492f491baf4334285cb64fc45dcc04e412803306dcd193",
+    "app\\src\\main\\java\\com\\vlcsubfont\\module\\FontStore.java": "4492113c6b0e23581401a903a6defdb2b0ddd00dc8be1998f4ded6c05491633c",
+    "app\\src\\main\\java\\com\\vlcsubfont\\module\\MainActivity.java": "78509acafc85fa623d8327ff18427254c33da4be7a1af9027684cb62082d681c",
+    "app\\src\\main\\java\\com\\vlcsubfont\\module\\xposed\\MemoryPatcher.java": "fb53623caece70e085faa16860fce2602be55c02aef2c773e22b67603d15eed0",
+    "app\\src\\main\\java\\com\\vlcsubfont\\module\\xposed\\ModuleEntry.java": "33161ebbb25e273f3751d9ce975edab4ea448e51f4a8aceea45a67a6383aecf9",
+    "app\\src\\main\\java\\com\\vlcsubfont\\module\\xposed\\VlcHooker.java": "21e541ff2dc0cc176bb098040cdfe4b37d9f80c86957a830bab38a97a498ec23",
+    "app\\src\\main\\jni\\Android.mk": "9053d8db54cb612c22d01ab437b253e2caca429a0a966cff2b0811deeb36fbcc",
+    "app\\src\\main\\jni\\subfontpatch.c": "7f03ed718d035f601fda5c18b704a63d87b88fd022c1c4c9403e5a037415b8b4",
+    "app\\src\\main\\res\\layout\\activity_main.xml": "74cb68f8665215730c3b10d1757f4b01426f1db227cd36b6e474899e943ca649",
+    "app\\src\\main\\res\\values\\arrays.xml": "74b37436dee7fd2970f0a53f9b10fa3ebd9c8a53b87bca272e14f729338a5b61",
+    "app\\src\\main\\res\\values\\strings.xml": "87a83fdda2f978258e357865e326e4a0a5cdf29f2e6ebb17799170688bb9072c",
+    "app\\src\\main\\res\\values\\themes.xml": "578ce23ed73a283ede7adfab5f56f70a5a76688878412431e8bc9cddfd380719",
+    "app\\src\\main\\res\\values-night\\themes.xml": "105abc835dedfc9b55ec47fa24027afc490296f3a41d1a18bbf90e19fc0062df"
+  }
+}

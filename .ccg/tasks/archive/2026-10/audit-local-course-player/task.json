@@ -1,0 +1,12 @@
+{
+  "nextAction": "Archive task",
+  "risk": "low",
+  "currentPhase": "completed",
+  "status": "completed",
+  "createdAt": "2026-10-26T14:10:44.5550845Z",
+  "title": "Audit VLC module for local course playback",
+  "domain": "android",
+  "branch": "main",
+  "complexity": "M",
+  "id": "audit-local-course-player"
+}

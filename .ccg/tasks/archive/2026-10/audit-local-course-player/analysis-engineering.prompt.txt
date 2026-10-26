@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/analyzer.md
+<TASK>
+Read VlcHooker.java and FontProvider.java for correctness risks, especially prune_home vs enabled and startup timing. Assess feasibility of course speed memory, quick rewind, bookmarks, subtitle transcript and folder progress using local VLC source E:/Downloads/888888/vlc-android. Give precise evidence, confidence and priorities. No edits. Be concise.
+</TASK>
+OUTPUT: Evidence-based report, English, under 900 words.

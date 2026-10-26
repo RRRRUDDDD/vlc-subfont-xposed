@@ -1,0 +1,1 @@
+Inspect the current module and local VLC source. Recommend improvements for offline course playback. Deliver an evidence-based audit only; do not change application code or existing uncommitted edits.

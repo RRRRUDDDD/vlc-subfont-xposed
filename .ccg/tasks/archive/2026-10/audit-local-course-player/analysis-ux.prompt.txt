@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/analyzer.md
+<TASK>
+Read module MainActivity.java, VlcHooker.java and layout. Independently assess current features and propose 5 highest-value improvements for an offline local course player. Distinguish existing VLC features from missing module UI. Inspect VLC source at E:/Downloads/888888/vlc-android as needed. Give exact file and symbol evidence. No edits. Be concise.
+</TASK>
+OUTPUT: Evidence-based report, English, under 900 words.
